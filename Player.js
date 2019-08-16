@@ -1,42 +1,45 @@
-class Player {
+module.exports = class Player {
     /**
-     * Construct a new player
-     * @param {number} xPos
-     * @param {number} yPos
-     * @param {string} color
+     * Constructor
+     * @param {WebSocket} socket Socket to player
+     * @param {Number} x Position in x-axis
+     * @param {Number} y Position in y-axis
+     * @param {Number} color Color of player
      */
-    constructor(xPos, yPos, color,) {
-        this.score = 0;
-        this.xPos = xPos;
-        this.yPos = yPos;
-        this.speed = 5;
-        this.width = 50;
+    constructor(socket, x, y, color) {
+        this.socket = socket;
+        this.x = x;
+        this.y = y;
+        this.ySpeed = 0;
+        this.yMaxSpeed = 10;
         this.height = 100;
+        this.width = 20;
         this.color = color;
     }
 
+    init() {
+        const self = this;
+        this.socket.emit('gameStart');
+        this.socket.on('move', function (up) {
+            self.move(up); 
+        });
+    }
 
     /**
-     * Move player
-     * @param {Boolean} up True if up, false if down
+     * Slows down player
+     */
+    tick() {
+        this.y += this.ySpeed;
+        if (this.ySpeed > 0) this.ySpeed-=2;
+        if (this.ySpeed < 0) this.ySpeed+=2;
+    }
+
+    /**
+     * Move 
      */
     move(up) {
-        if (up) {
-            this.yPos -= this.speed;
-        } else {
-            this.yPos += this.speed;
+        if (Math.abs(this.ySpeed) < this.yMaxSpeed) {
+            (up ? this.ySpeed-=2 : this.ySpeed+=2);
         }
-    }
-
-    /**
-     * Reset player to startPos
-     */
-    reset() {
-
-    }
-
-    render(ctx) {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.xPos, this.yPos, this.width, this.height);
     }
 }

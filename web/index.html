@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="w=device-w, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Ping Pong</title>
+    <title>Multiplayer Pong</title>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script src="./Ball.js" defer></script>
     <script src="./Game.js" defer></script>
     <script src="./Player.js" defer></script>
     <script src="./script.js" defer></script>
 </head>
 <body>
+    <button id="joinGameBtn">Join game</button>
     <canvas id="gameCanvas" style="border:1px solid black;"></canvas>
 </body>
 </html>

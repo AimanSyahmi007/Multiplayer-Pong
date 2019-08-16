@@ -1,35 +1,39 @@
-class Ball {
-    constructor(xPos, yPos, color){
-        this.xPos = xPos;
-        this.yPos = yPos;
+module.exports = class Ball {
+    /**
+     * Constructor
+     * @param {Number} x Position in x-axis
+     * @param {Number} y Position in y-axis
+     * @param {Number} radius Radius of ball
+     * @param {Number} color Color of ball
+     */
+    constructor(x, y, radius, color) {
+        this.xSpeed = 2;
+        this.ySpeed = 2;
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
         this.color = color;
-        this.speed = 5;
-        this.width = 20;
-        this.height = 20;
-        this.radius = 10;
-        this.direction = 0.5;
     }
 
-    update() {
-        this.move();
+    /**
+     * Run at every tick, update position
+     */
+    tick() {
+        this.x += this.xSpeed;
+        this.y += this.ySpeed;
     }
 
-    changeDirection() {
-        console.log('change dir from', this.direction, 'to', -this.direction);
-        this.direction = -this.direction;
-        console.log();
-    }
-
-    move() {
-        this.xPos += Math.cos(this.direction) * this.speed; // How far it moves in xDir
-        this.yPos += Math.sin(this.direction) * this.speed; // How far it moves in yDir
-    }
-
-    render(ctx) {
-        ctx.beginPath();
-        ctx.arc(this.xPos, this.yPos, this.radius, Math.PI*2, false);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        ctx.closePath();
+    /**
+     * Change direction of ball
+     * @param {Boolean} horizontal True if hit wall, xSpeed inverse if not ySpeed inverse
+     */
+    changeDir(horizontal) {
+        if (horizontal) {
+            console.log(this.ySpeed, -this.ySpeed);
+            this.ySpeed = -this.ySpeed;
+        } else {
+            console.log(this.xSpeed, -this.xSpeed);
+            this.xSpeed = -this.xSpeed;
+        }
     }
 }

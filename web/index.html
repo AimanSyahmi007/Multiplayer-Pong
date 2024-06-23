@@ -2,18 +2,434 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="w=device-w, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Multiplayer Pong</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
-    <script src="./Ball.js" defer></script>
-    <script src="./Game.js" defer></script>
-    <script src="./Player.js" defer></script>
-    <script src="./script.js" defer></script>
+        .container {
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            border: 2px solid #000;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .score {
+            margin-top: 20px;
+            font-size: 24px;
+        }
+
+        .winner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 9999;
+        }
+
+        .winner-message {
+            color: white;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .congratulations {
+            font-size: 24px;
+            color: #fff;
+        }
+
+        #restartOverlayButton {
+            margin-top: 20px;
+            padding: 10px 15px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        #restartOverlayButton:hover {
+            background-color: #218838;
+        }
+
+        #continueOverlayButton {
+            margin-top: 20px;
+            padding: 10px 15px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #continueOverlayButton:hover {
+            background-color: #0056b3;
+        }
+
+        .name-input {
+            margin-bottom: 20px;
+        }
+
+        .name-input input {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        .name-input button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .name-input button:hover {
+            background-color: #0056b3;
+        }
+
+        .history {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .history ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .history li {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 <body>
-    <button id="joinGameBtn">Join game</button>
-    <canvas id="gameCanvas" style="border:1px solid black;"></canvas>
+    <div class="container">
+        <h1>Pong Game</h1>
+        <div class="name-input" id="nameInput">
+            <input type="text" id="player1Name" placeholder="Enter Player 1 name">
+            <input type="text" id="player2Name" placeholder="Enter Player 2 name">
+            <button id="startButton">Start Level 1</button>
+        </div>
+        <canvas id="pongCanvas" style="display: none;"></canvas>
+        <div class="controls" style="display: none;">
+            <button id="restartButton" style="display: none;">Restart Game</button>
+            <button id="continueButton" style="display: none;">Continue to Level 2</button>
+            <p>Use Up/Down arrow keys to move the left paddle, and W/S keys to move the right paddle.</p>
+        </div>
+        <div class="score" style="display: none;">
+            <p><span id="displayPlayer1Name">Player 1</span> Score: <span id="player1Score">0</span></p>
+            <p><span id="displayPlayer2Name">Player 2</span> Score: <span id="player2Score">0</span></p>
+        </div>
+        <div class="history" id="history">
+            <h3>Winner History</h3>
+            <ul id="winnerList"></ul>
+        </div>
+    </div>
+
+    <div class="winner-overlay" id="winnerOverlay">
+        <div class="winner-message" id="winnerMessage"></div>
+        <div class="congratulations">Tahniah!</div>
+        <button id="restartOverlayButton">Restart Game</button>
+        <button id="continueOverlayButton" style="display: none;">Continue to Level 2</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('pongCanvas');
+        const context = canvas.getContext('2d');
+
+        canvas.width = 800;
+        canvas.height = 400;
+
+        const paddleWidth = 10, paddleHeight = 100;
+        const ballSize = 10;
+
+        const leftPaddle = {
+            x: 0,
+            y: (canvas.height - paddleHeight) / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            dy: 0
+        };
+
+        const rightPaddle = {
+            x: canvas.width - paddleWidth,
+            y: (canvas.height - paddleHeight) / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            dy: 0
+        };
+
+        let balls = [];
+        const initialBallSpeed = 2;
+        const level2BallSpeed = 3;
+
+        let winnerHistory = [];
+
+        function createBall(speed) {
+            return {
+                x: Math.random() * (canvas.width - ballSize),
+                y: Math.random() * (canvas.height - ballSize),
+                size: ballSize,
+                dx: speed * (Math.random() > 0.5 ? 1 : -1), // Randomize initial direction
+                dy: speed * (Math.random() > 0.5 ? 1 : -1) // Randomize initial direction
+            };
+        }
+
+        let player1Score = 0;
+        let player2Score = 0;
+
+        let gameRunning = false;
+        let animationFrameId;
+
+        let currentLevel = 1;
+        let player1Name = '';
+        let player2Name = '';
+
+        function drawPaddle(paddle) {
+            context.fillStyle = '#000';
+            context.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+        }
+
+        function drawBall() {
+            context.fillStyle = '#000';
+            balls.forEach(ball => {
+                context.fillRect(ball.x, ball.y, ball.size, ball.size);
+            });
+        }
+
+        function movePaddle(paddle) {
+            paddle.y += paddle.dy;
+
+            if (paddle.y < 0) {
+                paddle.y = 0;
+            }
+
+            if (paddle.y + paddle.height > canvas.height) {
+                paddle.y = canvas.height - paddle.height;
+            }
+        }
+
+        function moveBalls() {
+            balls.forEach(ball => {
+                ball.x += ball.dx;
+                ball.y += ball.dy;
+
+                // Wall collision (top/bottom)
+                if (ball.y + ball.size > canvas.height || ball.y < 0) {
+                    ball.dy *= -1;
+                }
+
+                // Paddle collision
+                if (ball.x < leftPaddle.x + leftPaddle.width &&
+                    ball.x + ball.size > leftPaddle.x &&
+                    ball.y < leftPaddle.y + leftPaddle.height &&
+                    ball.y + ball.size > leftPaddle.y) {
+                    ball.dx *= -1;
+                }
+
+                if (ball.x < rightPaddle.x + rightPaddle.width &&
+                    ball.x + ball.size > rightPaddle.x &&
+                    ball.y < rightPaddle.y + rightPaddle.height &&
+                    ball.y + ball.size > rightPaddle.y) {
+                    ball.dx *= -1;
+                }
+
+                // Scoring
+                if (ball.x + ball.size > canvas.width) {
+                    player1Score++;
+                    checkGameOver(player1Name);
+                    resetGame();
+                }
+
+                if (ball.x < 0) {
+                    player2Score++;
+                    checkGameOver(player2Name);
+                    resetGame();
+                }
+            });
+        }
+
+        function resetGame() {
+            balls = [];
+            let speed = currentLevel === 1 ? initialBallSpeed : level2BallSpeed;
+            balls.push(createBall(speed));
+
+            document.getElementById('player1Score').textContent = player1Score;
+            document.getElementById('player2Score').textContent = player2Score;
+        }
+
+        function checkGameOver(winner) {
+            const winScore = currentLevel === 1 ? 5 : 10;
+            if (player1Score >= winScore || player2Score >= winScore) {
+                document.getElementById('winnerMessage').textContent = `Tahniah, ${winner}! wins Level ${currentLevel}!`;
+                document.getElementById('winnerOverlay').style.display = 'flex';
+                winnerHistory.push(`${winner} (Level ${currentLevel})`);
+                updateWinnerHistory();
+                stopGameLoop();
+
+                if (currentLevel === 1) {
+                    document.getElementById('continueOverlayButton').style.display = 'block';
+                }
+            }
+        }
+
+        function updateWinnerHistory() {
+            const winnerList = document.getElementById('winnerList');
+            winnerList.innerHTML = '';
+            winnerHistory.forEach(winner => {
+                const li = document.createElement('li');
+                li.textContent = winner;
+                winnerList.appendChild(li);
+            });
+        }
+
+        function update() {
+            movePaddle(leftPaddle);
+            movePaddle(rightPaddle);
+            moveBalls();
+        }
+
+        function draw() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawPaddle(leftPaddle);
+            drawPaddle(rightPaddle);
+            drawBall();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function stopGameLoop() {
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                    leftPaddle.dy = -3;
+                    break;
+                case 'ArrowDown':
+                    leftPaddle.dy = 3;
+                    break;
+                case 'w':
+                    rightPaddle.dy = -3;
+                    break;
+                case 's':
+                    rightPaddle.dy = 3;
+                    break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'ArrowDown':
+                    leftPaddle.dy = 0;
+                    break;
+                case 'w':
+                case 's':
+                    rightPaddle.dy = 0;
+                    break;
+            }
+        });
+
+        document.getElementById('startButton').addEventListener('click', () => {
+            player1Name = document.getElementById('player1Name').value || 'Player 1';
+            player2Name = document.getElementById('player2Name').value || 'Player 2';
+            document.getElementById('nameInput').style.display = 'none';
+            document.getElementById('pongCanvas').style.display = 'block';
+            document.querySelector('.controls').style.display = 'block';
+            document.querySelector('.score').style.display = 'block';
+            document.getElementById('displayPlayer1Name').textContent = player1Name;
+            document.getElementById('displayPlayer2Name').textContent = player2Name;
+            gameRunning = true;
+            resetGame();
+            gameLoop();
+        });
+
+        document.getElementById('restartButton').addEventListener('click', () => {
+            location.reload();
+        });
+
+        document.getElementById('continueButton').addEventListener('click', () => {
+            currentLevel = 2;
+            balls = [createBall(level2BallSpeed)]; // Ensure only 1 ball in Level 2
+            document.getElementById('startButton').style.display = 'none';
+            document.getElementById('continueButton').style.display = 'none';
+            player1Score = 0;
+            player2Score = 0;
+            resetGame();
+            document.getElementById('winnerOverlay').style.display = 'none';
+            gameRunning = true;
+            gameLoop();
+        });
+
+        document.getElementById('restartOverlayButton').addEventListener('click', () => {
+            location.reload();
+        });
+
+        document.getElementById('continueOverlayButton').addEventListener('click', () => {
+            currentLevel = 2;
+            balls = [createBall(level2BallSpeed)]; // Ensure only 1 ball in Level 2
+            document.getElementById('startButton').style.display = 'none';
+            document.getElementById('continueButton').style.display = 'none';
+            player1Score = 0;
+            player2Score = 0;
+            resetGame();
+            document.getElementById('winnerOverlay').style.display = 'none';
+            gameRunning = true;
+            gameLoop();
+        });
+
+        // Initialize the winner history on page load
+        updateWinnerHistory();
+    </script>
 </body>
 </html>

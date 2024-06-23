@@ -2,11 +2,13 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
+const port = process.env.PORT || 5500
 
 const Game = require('./Game');
 
 app.use(express.static('web'));
 
+const uri = "mongodb+srv://b022210259:Aiman_140703@cluster0.2duvje6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 let games = [];
 
@@ -25,5 +27,5 @@ io.on('connection', function (socket) {
 });
 
 http.listen(3000, function () {
-    console.log('Listening on 3000');
+    console.log('Listening on 5500');
 });
